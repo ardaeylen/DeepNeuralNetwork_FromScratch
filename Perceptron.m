@@ -8,7 +8,7 @@ activations{1} = in;
 weighted_inputs = cell(1, size(layers,2));
 
 learning_rate = 0.0001;
-for i = 1:1000
+for i = 1:10000
     for layer = 1: size(layers, 2)
         [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer});
        
@@ -66,22 +66,18 @@ function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights,
 %a multi layer manner.
 if layer_num == total_layers
  
-    dZ =2 * (activation - y_true) / 16; % Because linear function is used
-    %disp('activations:')
-    %disp(activation)
-    %disp("Actual values")
-    %disp(y_true)
+    dZ = 2 * (activation - y_true); % loss = sum ([(a - y)^2]) / m where m isthe number of training examples
+  
 else
     dZ = da.* derivative_of_activations(z, 'sigmoid');
+
 end
     dW = dZ * (a_prev).';
-    %disp(dW);
-    %disp(size(weights));
     dB = row_sum(dZ);
     new_Weights = weights - (learning_rate * dW);
     new_Biases = biases - (learning_rate * dB);
     da_Prev = (weights.') * dZ;
-    disp((new_Weights));
+    
 end
 
 % it is okey
