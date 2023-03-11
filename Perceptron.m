@@ -2,19 +2,21 @@ layers = [1];
 [weights, biases] = initialize_network(layers,1);
 in = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
 y_true = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25,61, 41, 101];
-epochs = 10000;
+epochs = 1000;
 activations = cell(1, size(layers,2)+1);
-activations{1} = in;
+activations{1} = in; %First activation is the input
 weighted_inputs = cell(1, size(layers,2));
 
 learning_rate = 0.0001;
-for i = 1:10000
+for i = 1:epochs
     for layer = 1: size(layers, 2)
         [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer});
        
     end
+    [loss] = calculateLoss(activations{layer + 1}, y_true, 'linear');
+    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, y_true,'mean_squared_error');
     for layer = size(layers, 2):1
-        [a_prev, weights{layer}, biases{layer}] = backward_propagation(in, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, layer, size(layers,2), activations{layer + 1}, y_true, learning_rate);
+        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, layer, size(layers,2), activations{layer + 1}, y_true, learning_rate);
         
     end
 
@@ -31,12 +33,38 @@ function [row_sum_of_matrix] = row_sum(matrix)
 end
 %It is okey
 function [derivative_of_g] = derivative_of_activations(z,function_name)
-
-    derivative_of_g = activation_function(z).*(1-activation_function(z));
+if(strcmp(function_name, 'sigmoid'))
+    derivative_of_g = activation_function(z, 'sigmoid').*(1-activation_function(z, 'sigmoid'));
+end
+if(strcmp(function_name, 'tanh'))
+    derivative_of_g = 1 - activation_function(z, 'tanh').^2;
+end
+if(strcmp(function_name,'linear'))
+    derivative_of_g = rdivide(z,z);
+end
 end
 % It is okey
-function [activation] =  activation_function(z)
+function [activation] =  activation_function(z, function_name)
+    if(strcmp(function_name, 'sigmoid'))
     activation = rdivide(1, (1+ exp(-z)));
+    end
+    if(strcmp(function_name, 'tanh'))
+    activation = tanh(z);
+    end
+    if(strcmp(function_name, 'linear'))
+    activation = activation;
+    end
+    if(strcmp(function_name, 'binary_step'))
+    for i=1:size(z,1)
+        for j = 1:size(z,2)
+            if z(i,j) > 0
+                z(i,j) = 1;
+            else
+                z(i,j) = 0;
+            end
+        end
+    end
+    end
 end
 
 function [z,activations, weights, biases] =   forward_propagation(a_prev, weights, biases)
@@ -64,19 +92,19 @@ function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights,
 %Note that this function also returns gradient of the loss function with
 %respect to the previous layers activations for this function to be used in
 %a multi layer manner.
-if layer_num == total_layers
+%if layer_num == total_layers % If the backward propagation just begin 
  
-    dZ = 2 * (activation - y_true); % loss = sum ([(a - y)^2]) / m where m isthe number of training examples
-  
-else
-    dZ = da.* derivative_of_activations(z, 'sigmoid');
+ %   dZ = 2 * (activation - y_true);
 
-end
-    dW = dZ * (a_prev).';
-    dB = row_sum(dZ);
+%else
+ dZ = da.* derivative_of_activations(z, 'linear');% dZ = da * g'(Z) = (dL/ da) * (da/dZ) 
+
+%end
+    dW = rdivide( dZ * (a_prev).' , 16);
+    dB = rdivide(row_sum(dZ), 16);
     new_Weights = weights - (learning_rate * dW);
     new_Biases = biases - (learning_rate * dB);
-    da_Prev = (weights.') * dZ;
+    da_Prev = (weights.') * dZ; 
     
 end
 
@@ -99,5 +127,21 @@ if size(layers, 2) > 1
     end
 end
 
+function [loss] = calculateLoss(predicted, actual, lastLayerActivationFunction)
+if strcmp(lastLayerActivationFunction,'sigmoid')
+    loss = r_divide(row_sum(-(actual * log(predicted) + (1 - actual)*log(1 - predicted))), size(actual,2));
+elseif strcmp(lastLayerActivationFunction,'linear')
+    loss= rdivide(row_sum((actual - predicted).^2).^(0.5),size(actual,2));
+end    
+    loss_string = sprintf('Loss = %.5f ',(loss));
+    disp(loss_string);
+end
 
-
+function [da] = gradientOfLossWithRespToLastLayersActivations(lastActivations, actual_values ,lossFunction)
+if strcmp(lossFunction, 'binary_crossentropy')
+    da = rdivide(actual_values, lastActivations) * (-1) + rdivide(1 - actual_values, 1 - lastActivations);% loss = -(y * log(a) + (1 - y) * log(1 - a)).
+elseif strcmp(lossFunction, 'mean_squared_error')
+    da =  -(2 /size(actual_values,2))*(actual_values - lastActivations); % loss = sum ([(a - y)^2]) / m where m isthe number of training examples
+    
+end
+end
