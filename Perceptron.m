@@ -1,4 +1,5 @@
 %input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
+% M. Arda Eylen 
 zero = [0, 1, 1, 1, 0;
         1, 0, 0, 0, 1;
         1, 0, 0, 0, 1;
@@ -92,8 +93,12 @@ labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 1, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 1, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
-model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax');
-prediction = predict_input(one, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation)
+model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation) That is the function
+%Where the training is happen.
+prediction = predict_input(one, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation) That is the Function where the prediction
+% with input is making by the adjusted (learned) weights and biases.
+
+disp(find_arg_max(prediction));
 % It is okey
 function [flattened_vector] = flattenFunction(matrix)
 flattened_vector = [];    
@@ -326,4 +331,17 @@ for layer = 1: size(weights, 2)
         end    
 end
 prediction = activations{size(weights,2) + 1};
+end
+
+function [arg_max] = find_arg_max(output_of_softmax)
+arg_max = zeros(size(output_of_softmax));
+max = output_of_softmax(1,1);
+max_index = 1;
+for i=1:size(output_of_softmax,1)
+    if output_of_softmax(i,1) > max
+        max = output_of_softmax(i,1);
+        max_index = i;
+    end
+end
+arg_max(max_index,1) = 1.0;
 end
