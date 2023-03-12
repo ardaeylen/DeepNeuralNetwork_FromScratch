@@ -1,26 +1,7 @@
-layers = [1];
-[weights, biases] = initialize_network(layers,1);
-in = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
-y_true = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25,61, 41, 101];
-epochs = 1000;
-activations = cell(1, size(layers,2)+1);
-activations{1} = in; %First activation is the input
-weighted_inputs = cell(1, size(layers,2));
+input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
+labels = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25,61, 41, 101];
+model = letItLearn(input, labels, [1], 1000, 0.001, 'linear','linear');
 
-learning_rate = 0.0001;
-for i = 1:epochs
-    for layer = 1: size(layers, 2)
-        [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer});
-       
-    end
-    [loss] = calculateLoss(activations{layer + 1}, y_true, 'linear');
-    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, y_true,'mean_squared_error');
-    for layer = size(layers, 2):1
-        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, layer, size(layers,2), activations{layer + 1}, y_true, learning_rate);
-        
-    end
-
-end
 % It is okey
 function [row_sum_of_matrix] = row_sum(matrix)
     sum_matrix = zeros(size(matrix, 1),1);
@@ -52,7 +33,7 @@ function [activation] =  activation_function(z, function_name)
     activation = tanh(z);
     end
     if(strcmp(function_name, 'linear'))
-    activation = activation;
+    activation = z;
     end
     if(strcmp(function_name, 'binary_step'))
     for i=1:size(z,1)
@@ -67,7 +48,7 @@ function [activation] =  activation_function(z, function_name)
     end
 end
 
-function [z,activations, weights, biases] =   forward_propagation(a_prev, weights, biases)
+function [z,activations, weights, biases] =   forward_propagation(a_prev, weights, biases,activation_function_name)
     %Forward Propagation of a single layer is executed here.
     % a_prev.shape = (n_x, m) where n_x is the number of features and m is
     % number of examples, weights.shape = (n_l, n_x) where n_l is the
@@ -79,7 +60,7 @@ function [z,activations, weights, biases] =   forward_propagation(a_prev, weight
     % activations = W*a_prev + biases
 
     z = weights * a_prev + biases;
-    activations = z; %activation_function(z);
+    activations = activation_function(z, activation_function_name);
     weights = weights;
     biases = biases;
 end
@@ -144,4 +125,29 @@ elseif strcmp(lossFunction, 'mean_squared_error')
     da =  -(2 /size(actual_values,2))*(actual_values - lastActivations); % loss = sum ([(a - y)^2]) / m where m isthe number of training examples
     
 end
+end
+function [model] = letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation)
+[weights, biases] = initialize_network(layers,size(input,1));
+
+activations = cell(1, size(layers,2)+1);
+activations{1} = input; %First activation is the input
+weighted_inputs = cell(1, size(layers,2));% Z values are stored for backward propagation
+
+for i = 1:epochs
+    for layer = 1: size(layers, 2)
+        if layer ~= size(layers,2)
+        [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, layer_activations);
+        else
+        [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, last_layer_activation);
+        end    
+    end
+    [loss] = calculateLoss(activations{layer + 1}, labels, 'linear');
+    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,'mean_squared_error');
+    for layer = size(layers, 2):1
+        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, layer, size(layers,2), activations{layer + 1}, labels, learning_rate);
+        
+    end
+
+end
+model = {weights, biases};
 end
