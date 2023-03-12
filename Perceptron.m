@@ -92,8 +92,8 @@ labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 1, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 1, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
-%model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax');
-
+model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax');
+prediction = predict_input(one, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation)
 % It is okey
 function [flattened_vector] = flattenFunction(matrix)
 flattened_vector = [];    
@@ -163,14 +163,14 @@ end
 function [activation] =  activation_function(z, function_name)
     if(strcmp(function_name, 'sigmoid'))
     activation = rdivide(1, (1+ exp(-z)));
-    end
-    if(strcmp(function_name, 'tanh'))
+    
+    elseif(strcmp(function_name, 'tanh'))
     activation = tanh(z);
-    end
-    if(strcmp(function_name, 'linear'))
+    
+    elseif(strcmp(function_name, 'linear'))
     activation = z;
-    end
-    if(strcmp(function_name, 'binary_step'))
+    
+    elseif(strcmp(function_name, 'binary_step'))
     for i=1:size(z,1)
         for j = 1:size(z,2)
             if z(i,j) > 0
@@ -180,9 +180,8 @@ function [activation] =  activation_function(z, function_name)
             end
         end
     end
-    if(strcmp(function_name, 'softmax'))
+    elseif(strcmp(function_name, 'softmax'))
         activation = softmax_activation(z);
-    end
     end
 end
 
@@ -249,11 +248,11 @@ end
 
 function [loss] = calculateLoss(predicted, actual, lastLayerActivationFunction)
     if strcmp(lastLayerActivationFunction,'sigmoid')
-        loss = r_divide(row_sum(-(actual.* log(predicted) + (1 - actual)*log(1 - predicted))), size(actual,2));
+        loss = rdivide(row_sum(-(actual.* log(predicted) + (1 - actual)*log(1 - predicted))), size(actual,2));
     elseif strcmp(lastLayerActivationFunction,'linear')
         loss= rdivide(row_sum((actual - predicted).^2).^(0.5),size(actual,2));
-    elseif strcmp(lossFunction, 'categorical_crossentropy')
-        loss = r_divide(row_sum(col_sum(-(actual).*log(predicted))), size(actual, 2));
+    elseif strcmp(lastLayerActivationFunction, 'softmax')
+        loss = rdivide(row_sum(col_sum(-(actual).*log(predicted))), size(actual, 2));
     end    
     loss_string = sprintf('Loss = %.5f ',(loss));
     disp(loss_string);
@@ -273,7 +272,7 @@ end
 end
 
 
-    function [probabilities] = softmax_activation(z)
+function [probabilities] = softmax_activation(z)
 probabilities = zeros(size(z));
 for i = 1:size(z,2)
     outputs = z(:,i);
@@ -314,4 +313,17 @@ for i = 1:epochs
 
 end
 model = {weights, biases};
+end
+
+function [prediction] = predict_input(input, weights, biases, layer_activations, last_layer_activation)
+activations = {};
+activations{1} = flatten_input(input);
+for layer = 1: size(weights, 2)
+        if layer ~= size(weights,2)
+        [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, layer_activations);
+        else
+        [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, last_layer_activation);
+        end    
+end
+prediction = activations{size(weights,2) + 1};
 end
