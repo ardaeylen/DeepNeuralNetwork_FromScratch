@@ -1,6 +1,6 @@
 input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
 labels = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25,61, 41, 101];
-model = letItLearn(input, labels, [1,3,1], 100, 0.001, 'sigmoid','linear');
+model = letItLearn(input, labels, [1,3,1], 10000, 0.001, 'tanh','linear');
 
 % It is okey
 function [row_sum_of_matrix] = row_sum(matrix)
@@ -15,10 +15,10 @@ end
 %It is okey
 function [derivative_of_g] = derivative_of_activations(z,function_name)
 if(strcmp(function_name, 'sigmoid'))
-    derivative_of_g = activation_function(z, 'sigmoid').*(1-activation_function(z, 'sigmoid'));
+    derivative_of_g = activation_function(z, function_name).*(1-activation_function(z, function_name));
 end
 if(strcmp(function_name, 'tanh'))
-    derivative_of_g = 1 - activation_function(z, 'tanh').^2;
+    derivative_of_g = 1 - activation_function(z, function_name).^2;
 end
 if(strcmp(function_name,'linear'))
     derivative_of_g = rdivide(z,z);
@@ -65,7 +65,7 @@ function [z,activations, weights, biases] =   forward_propagation(a_prev, weight
     biases = biases;
 end
 
-function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights, biases,a_prev,z, layer_num, total_layers, activation, y_true, learning_rate)
+function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights, biases,a_prev,z, learning_rate, layer_activations)
 % da is the derivative of the loss with respect to the current layer's activations 
 % This function calculates dW ,dB (derivative of loss wirth respect to
 % loss function) to implement gradient descent on weights and biases and also
@@ -78,7 +78,7 @@ function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights,
  %   dZ = 2 * (activation - y_true);
 
 %else
- dZ = da.* derivative_of_activations(z, 'linear');% dZ = da * g'(Z) = (dL/ da) * (da/dZ) 
+ dZ = da.* derivative_of_activations(z, layer_activations);% dZ = da * g'(Z) = (dL/ da) * (da/dZ) 
 
 %end
     dW = rdivide( dZ * (a_prev).' , 16);
@@ -143,11 +143,12 @@ for i = 1:epochs
         [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, last_layer_activation);
         end    
     end
-    [loss] = calculateLoss(activations{layer + 1}, labels, 'linear');
+    [loss] = calculateLoss(activations{layer + 1}, labels, last_layer_activation);
     [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,'mean_squared_error');
-    for layer = size(layers, 2):1
-        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, layer, size(layers,2), activations{layer + 1}, labels, learning_rate);
-        
+    %disp(da);
+    for layer = size(layers, 2):-1:1
+        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, learning_rate, layer_activations);
+        %disp(da);                                                 
     end
 
 end
