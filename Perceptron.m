@@ -1,6 +1,6 @@
 input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
 labels = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25,61, 41, 101];
-model = letItLearn(input, labels, [1], 1000, 0.001, 'linear','linear');
+model = letItLearn(input, labels, [1,3,1], 100, 0.001, 'sigmoid','linear');
 
 % It is okey
 function [row_sum_of_matrix] = row_sum(matrix)
@@ -97,7 +97,8 @@ first_layer_bias = [rands(layers(1), 1)];
 first_layer_weight = [rands(layers(1), input_dim)];
 weight_list{1, 1} = first_layer_weight; 
 bias_list{1, 1} = first_layer_bias; 
-if size(layers, 2) > 1
+
+if size(layers, 2) > 1 %Check whether the number of layers is greater than 1.
         for i = 2:size(layers, 2)   
             weight = [rands(layers(i), layers(i - 1))];
             bias = [zeros(layers(i), 1)];
@@ -105,7 +106,7 @@ if size(layers, 2) > 1
             bias_list{i} = bias;
             
         end
-    end
+end
 end
 
 function [loss] = calculateLoss(predicted, actual, lastLayerActivationFunction)
@@ -126,6 +127,7 @@ elseif strcmp(lossFunction, 'mean_squared_error')
     
 end
 end
+
 function [model] = letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation)
 [weights, biases] = initialize_network(layers,size(input,1));
 
