@@ -94,9 +94,11 @@ labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 1, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 1, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
-model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax', 'categorical_crossentropy'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation, loss_function) That is the function
+model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','binary_step', 'binary_crossentropy'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation, loss_function) That is the function
+%model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax', 'categorical_crossentropy'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation, loss_function) That is the function
+
 %Where the training is happen.
-prediction = predict_input(eight, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation) That is the Function where the prediction
+prediction = predict_input(three, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation) That is the Function where the prediction
 % with input is making by the adjusted (learned) weights and biases.
 
 disp(find_arg_max(prediction));
@@ -187,6 +189,7 @@ function [activation] =  activation_function(z, function_name)
             end
         end
     end
+    activation = z;
     elseif(strcmp(function_name, 'softmax'))
         activation = softmax_activation(z);
     end
@@ -209,7 +212,7 @@ function [z,activations, weights, biases] =   forward_propagation(a_prev, weight
     biases = biases;
 end
 
-function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights, biases,a_prev,z, learning_rate, layer_activations)
+function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights, biases,a_prev,z, learning_rate, layer_activations, actual_values)
 % da is the derivative of the loss with respect to the current layer's activations 
 % This function calculates dW ,dB (derivative of loss wirth respect to
 % loss function) to implement gradient descent on weights and biases and also
@@ -217,8 +220,11 @@ function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights,
 %Note that this function also returns gradient of the loss function with
 %respect to the previous layers activations for this function to be used in
 %a multi layer manner.
- dZ = da.* derivative_of_activations(z, layer_activations);% dZ = (dL/dZ) = da * g'(Z) = (dL/ da) * (da/dZ) 
-
+    if ~strcmp(layer_activations,'binary_step')
+    dZ = da.* derivative_of_activations(z, layer_activations);% dZ = (dL/dZ) = da * g'(Z) = (dL/ da) * (da/dZ) 
+    else
+    dZ = activation_function(z, 'binary_step') - actual_values; 
+    end
 %end
     dW = rdivide( dZ * (a_prev).' , size(a_prev, 2)); % dL/dW = (dL / dZ) * (dZ/dW) = (dL/dZ) * a_prev
     dB = rdivide(row_sum(dZ),  size(a_prev, 2)); % dL/db = (dL/dZ) * (dZ/db) = dZ * 1
@@ -308,11 +314,19 @@ for i = 1:epochs
         [weighted_inputs{layer},activations{layer + 1}, weights{layer}, biases{layer}] = forward_propagation(activations{layer}, weights{layer}, biases{layer}, last_layer_activation);
         end    
     end
-    [loss] = calculateLoss(activations{layer + 1}, labels, last_layer_activation);
-    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,loss_function);
+    if ~strcmp(last_layer_activation, 'binary_step')
+        [loss] = calculateLoss(activations{layer + 1}, labels, last_layer_activation);
+        [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,loss_function);
+    else
+        [da] = activations{layer + 1};
+    end
     %disp(da);
     for layer = size(layers, 2):-1:1
-        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, learning_rate, layer_activations);
+        if layer ~= size(layers,2)
+        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, learning_rate, layer_activations, labels);
+        else
+        [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, learning_rate, last_layer_activation, labels);
+        end   
         %disp(da);                                                 
     end
 
