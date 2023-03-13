@@ -1,5 +1,6 @@
 %input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 20, 50];
-% M. Arda Eylen 
+% M. Arda Eylen
+% ------------------------------------------------------------------------------------------
 zero = [0, 1, 1, 1, 0;
         1, 0, 0, 0, 1;
         1, 0, 0, 0, 1;
@@ -93,13 +94,13 @@ labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 1, 0, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 1, 0;
           0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
-model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation) That is the function
+model = letItLearn(input, labels, [10], 10000, 0.001, 'linear','softmax', 'categorical_crossentropy'); %letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation, loss_function) That is the function
 %Where the training is happen.
-prediction = predict_input(one, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation) That is the Function where the prediction
+prediction = predict_input(eight, model{1}, model{2}, 'linear', 'softmax'); % predict_input(input, weights, biases, layer_activations, last_layer_activation) That is the Function where the prediction
 % with input is making by the adjusted (learned) weights and biases.
 
 disp(find_arg_max(prediction));
-% It is okey
+% ----------------------------------------------------------------------------------------------------------------
 function [flattened_vector] = flattenFunction(matrix)
 flattened_vector = [];    
 for i = 1: size(matrix, 1)
@@ -151,6 +152,7 @@ end
 
 %It is okey
 function [derivative_of_g] = derivative_of_activations(z,function_name)
+epsilon = 0.001;
 if(strcmp(function_name, 'sigmoid'))
     derivative_of_g = activation_function(z, function_name).*(1-activation_function(z, function_name));
 end
@@ -215,20 +217,17 @@ function [da_Prev, new_Weights, new_Biases ] = backward_propagation(da, weights,
 %Note that this function also returns gradient of the loss function with
 %respect to the previous layers activations for this function to be used in
 %a multi layer manner.
-%if layer_num == total_layers % If the backward propagation just begin 
- 
- %   dZ = 2 * (activation - y_true);
-
-%else
- dZ = da.* derivative_of_activations(z, layer_activations);% dZ = da * g'(Z) = (dL/ da) * (da/dZ) 
+ dZ = da.* derivative_of_activations(z, layer_activations);% dZ = (dL/dZ) = da * g'(Z) = (dL/ da) * (da/dZ) 
 
 %end
-    dW = rdivide( dZ * (a_prev).' , 16);
-    dB = rdivide(row_sum(dZ), 16);
-    new_Weights = weights - (learning_rate * dW);
-    new_Biases = biases - (learning_rate * dB);
-    da_Prev = (weights.') * dZ; 
-    
+    dW = rdivide( dZ * (a_prev).' , size(a_prev, 2)); % dL/dW = (dL / dZ) * (dZ/dW) = (dL/dZ) * a_prev
+    dB = rdivide(row_sum(dZ),  size(a_prev, 2)); % dL/db = (dL/dZ) * (dZ/db) = dZ * 1
+    new_Weights = weights - (learning_rate * dW); % Gradient Descent Algorithm Implemented Here
+    new_Biases = biases - (learning_rate * dB);% Where W[i+1] = W[i] - alpha * (dL/dW) and b[i+1] = b[i] - alpha * (dL/db)
+    da_Prev = (weights.') * dZ; %This is where the distribution of gradient of the loss function with respect to previous layer. 
+    % Z = W*a_prev + b => (dL / da_prev) = (dL/dZ) * (dZ/da_prev) =
+    % (dL/dZ)* W 
+ 
 end
 
 % it is okey
@@ -264,12 +263,13 @@ function [loss] = calculateLoss(predicted, actual, lastLayerActivationFunction)
 end
 
 function [da] = gradientOfLossWithRespToLastLayersActivations(lastActivations, actual_values ,lossFunction)
+
 if strcmp(lossFunction, 'binary_crossentropy')
-    da = rdivide(actual_values, lastActivations) * (-1) + rdivide(1 - actual_values, 1 - lastActivations);% loss = -(y * log(a) + (1 - y) * log(1 - a)).
+    da = rdivide(actual_values, lastActivations) * (-1) + rdivide(1 - actual_values, 1 - lastActivations);% loss = -(y * log(a) + (1 - y) * log(1 - a)). => dL/da = -y/a + (1-y)/(1-a)
 elseif strcmp(lossFunction, 'mean_squared_error')
     da =  -(2 /size(actual_values,2))*(actual_values - lastActivations); % loss = sum ([(a - y)^2]) / m where m is the number of training examples
 elseif strcmp(lossFunction, 'categorical_crossentropy')
-    da = rdivide(actual_values, lastActivations) * (-1);% loss = -sum(ylog(a)).
+    da = rdivide(actual_values, lastActivations) * (-1);% loss = -sum(ylog(a)). => dL/da = -y/a
     %In the specific (and usual) case of Multi-Class classification 
     % the labels are one-hot, so only the positive class
     %keeps its term in the loss.
@@ -292,11 +292,11 @@ end
 
 
 
-function [model] = letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation)
+function [model] = letItLearn(input,labels,layers, epochs, learning_rate, layer_activations, last_layer_activation, loss_function)
 
 [weights, biases] = initialize_network(layers,size(input,1));
 
-activations = cell(1, size(layers,2)+1);
+activations = cell(1, size(layers,2)+1);% Hold the activations of layers for forward propagation as well as backward propagation.
 activations{1} = input; %First activation is the input
 weighted_inputs = cell(1, size(layers,2));% Z values are stored for backward propagation
 
@@ -309,7 +309,7 @@ for i = 1:epochs
         end    
     end
     [loss] = calculateLoss(activations{layer + 1}, labels, last_layer_activation);
-    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,'categorical_crossentropy');
+    [da] = gradientOfLossWithRespToLastLayersActivations(activations{layer +1 }, labels,loss_function);
     %disp(da);
     for layer = size(layers, 2):-1:1
         [da, weights{layer}, biases{layer}] = backward_propagation(da, weights{layer}, biases{layer},activations{layer},weighted_inputs{layer}, learning_rate, layer_activations);
