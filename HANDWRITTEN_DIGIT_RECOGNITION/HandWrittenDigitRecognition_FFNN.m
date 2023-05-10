@@ -15,8 +15,8 @@ classes = [0; 1; 2; 3; 4; 5; 6; 7; 8; 9];
 
 y_categorical = categorical(y_train, classes);
 %---------- Options-----------------
-options = trainingOptions('adam', ... % Sthocastic Gradient Descent Learning Algorithm Used
-    'MaxEpochs',200,...
+options = trainingOptions('sgdm', ... % Sthocastic Gradient Descent Learning Algorithm Used
+    'MaxEpochs',100,...
     'InitialLearnRate',1e-3, ... % Initial Learning Rate = 0,001
     'Verbose',true, ...
     'Plots','training-progress');
@@ -27,26 +27,22 @@ options = trainingOptions('adam', ... % Sthocastic Gradient Descent Learning Alg
 % Building network model.
 input_layer = featureInputLayer(size(X_train,1));
 
-hidden_layer_1 = fullyConnectedLayer(50,'WeightsInitializer','he');
+hidden_layer_0 = fullyConnectedLayer(50,'WeightsInitializer','he');
+hidden_layer1 = fullyConnectedLayer(50, 'WeightsInitializer', 'he');
 hidden_layer2 = fullyConnectedLayer(50, 'WeightsInitializer', 'he');
-
-hidden_layer_3 = fullyConnectedLayer(50, 'WeightsInitializer', 'he');
-
 
 output_layer = fullyConnectedLayer(number_of_classes, 'WeightsInitializer', 'he');
 softmax_layer = softmaxLayer; 
 classification_layer = classificationLayer('Name','output');
-layers = [input_layer hidden_layer_1 hidden_layer2 hidden_layer_3 output_layer softmax_layer classification_layer];
+layers = [input_layer hidden_layer_0 hidden_layer1 hidden_layer2 output_layer softmax_layer classification_layer];
 %----------------------------------------------------
 %---Train the network--------------------------------
 net = trainNetwork(transpose(X_train),y_categorical,layers,options);
 %---------------------------------------------------
 
 y_predicted = classify(net, transpose(X_test));
-final_accuracy = sum(y_predicted == categorical(transpose(y_test)),'all') / size(y_test,2); 
-%---------------------------------------------------
+final_accuracy = sum(y_predicted == categorical(y_test)) / size(y_test,2); 
 
-conf_matrix = confusion(categorical(transpose(y_test)), y_predicted);
 
 
 
