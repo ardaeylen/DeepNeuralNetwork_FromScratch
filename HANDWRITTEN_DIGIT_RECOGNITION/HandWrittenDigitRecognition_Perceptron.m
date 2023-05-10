@@ -105,24 +105,3 @@ stats = table(name, values, macroAVG, microAVG, 'VariableNames',varNames);
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
