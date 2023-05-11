@@ -21,7 +21,7 @@ options = trainingOptions('adam', ... % Adaptive Moment Estimation Learning Algo
     'Verbose',true, ...
     'Plots','training-progress');
 
-%-----------------------------------
+%-------------------------------------
 
 
 % Building network model.
