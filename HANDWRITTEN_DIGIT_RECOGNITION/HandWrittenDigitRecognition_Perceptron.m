@@ -15,7 +15,7 @@ classes = [0; 1; 2; 3; 4; 5; 6; 7; 8; 9];
 
 y_categorical = categorical(y_train, classes);
 %---------- Options-----------------
-options = trainingOptions('adam', ... % Sthocastic Gradient Descent Learning Algorithm Used
+options = trainingOptions('adam', ... % Adaptive Moment Estimation Learning Algorithm Used
     'MaxEpochs',128,...
     'InitialLearnRate',1e-3, ... % Initial Learning Rate = 0,001
     'Verbose',true, ...
